@@ -1,26 +1,34 @@
-require('node:dns').setServers(['1.1.1.1','8.8.8.8'])
-require('dotenv').config()
-const express = require('express')
-const app = express()
+require("node:dns").setServers(["1.1.1.1", "8.8.8.8"]);
+require("dotenv").config();
+const express = require("express");
+const app = express();
+const cors = require("cors");
+const dbConnection = require("./config/dbConnection");
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./config/swagger");
+const authRoute = require("./routes/authRoute");
+const rateLimit = require("express-rate-limit");
 
-const cors = require("cors")
-const dbConnection = require('./config/dbConnection')
+app.use(express.json());
+app.use(cors());
 
+dbConnection();
 
-app.use(express.json())
-app.use(cors())
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  ipv6Subnet: 56,
+});
 
+app.use(limiter);
 
-dbConnection()
+// Swagger
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-app.get("/",(req,res)=>{
-res.send("Hello")
-})
- 
+app.use("/api/v1/auth", authRoute);
 
-
-app.listen(5000,()=>{
-    console.log("Server is running on port 5000");
-    
-})
-
+app.listen(5000, () => {
+  console.log("Server is running on port 5000");
+});
